@@ -2,221 +2,148 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <unistd.h>
-#include <GL/glut.h>
+#include <windows.h>
+#include <conio.h>
+
+double ind[10];
+double fit[10];
+double maxfit = 0.0;
+int    maxi  = 0;
+int    key;
+int    i, g = 0;
+
+void population();
+void evaluate();
+void elite();
+void predation();
+void maxfitness();
+
+int main(){
+
+srand(time(NULL));
+
+start:
+    g = 0;
+
+    population();
 
 
-int melhorer_cores = 50;
-int Mutacoes = 3; 
-float Vizinho1 = 0.60; 
-float Vizinho2 = 0.21; 
+loop:
+	g++;
+
+    evaluate();
+
+	maxfitness();
 
 
-static int win(0); 
+    printf("\n   Geracao: %d", g);
+    printf("   Valor da  melhor caracteristica: %.2f", maxfit);
+    printf("   Posicao do melhor  individuo: %d\n", maxi+1);
+    printf("\n\n   Populacao:[");
+    for (i=0;i<10;i++){
+        printf("%.2f ", fit[i]);
+    }
+    printf("]\n\n");
+    printf("\n   Aperte 'q' para sair \n   Aperte 'e' para criar uma nova geracao\n   Aperte 'r' para reiniciar\n");
 
-void Ordenar_Vetor(int vetor[][3], int indice); 
 
-void Cores_Iniciais(float Cor[][500][3]); 
+	elite();
 
-void Avaliacao_Cores(float Cor[][500][3], int points[][3], float PerfectRed, float PerfectGreen, float PerfectBlue);
+    if(( g % 10 ) == 0) predation();
 
-void Crossover_Cores(float Cor[][500][3], int points[][3]); 
 
-void Mutacao_Cores(float Cor[][500][3], float red, float green, float blue); 
 
-int main(int argc, char* argv[])
-{
-	time_t t; srand((unsigned) time(&t)); 
-	float Cor[500][500][3]; 
-	int Points[melhorer_cores][3]; 
-	float Mutacao[Mutacoes][3]; 
+	key:
+	if (kbhit()){
+		key = getch();
 
-	
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-	glutInitWindowPosition(0, 0);
-	glutInitWindowSize(500,500);
-	glutCreateWindow("Color Dissemination");
-	glMatrixMode( GL_PROJECTION );
-	glLoadIdentity();
-	glClear(GL_COLOR_BUFFER_BIT);
-	gluOrtho2D(0.0, 500.0, 500.0, 0.0);
-
-	
-	Cores_Iniciais(Color);
-	
-	
-	int i_mutacao = rand()%500;
-	int j_mutacao = rand()%500;
-	float redM = Cor[i_mutacao][j_mutacao][0];
-	float greenM = Cor[i_mutacao][j_mutacao][1];
-	float blueM = Cor[i_mutacao][j_mutacao][2];
-
-	int contador, i, j;
-	for(contador=0; contador<500; contador++)
-	{
-		Avaliacao_Cores(Cor, Points, 0.8, 0.1, 0.4);
-		
-		Crossover_Cores(Cor, Points);
-
-		Mutacao_Cores(Cor, redM, greenM, blueM);
-
-		for(i=0;i<500;i++)
-		{
-			for(j=0;j<500;j++)
-			{
-				
-				glBegin(GL_POINTS);
-					glColor3f(Cor[i][j][0],Cor[i][j][1],Cor[i][j][2]); 
-					glVertex2i(i,j); 
-				glEnd();
-			}
+		if (key == 'e'){
+			system("cls");
+			goto loop;
 		}
-
-		//sleep(1);
-		glFlush();
+        else if (key == 'r'){
+            system("cls");
+			goto start;
+        }
+        else if (key == 'q'){
+            printf("\n");
+			goto end;
+        }
 	}
+	goto key;
 
-	glutMainLoop();	
+
+    end:
+	return 0;
 }
 
 
-void Ordenar_Vetor(int vetor[][3], int indice)
-{
-	int n, m; 
-	int aux, i_aux, j_aux;
-	int contador=0;
-
-    for( n=0; (n<indice) && (contador==0) ; n++ )
-	{
-		for( m=0; m<indice; m++ ) if( vetor[n][0] <= vetor[m][0] ) contador++;
-			
-		if(contador>=indice)
-		{
-			aux = vetor[0][0];
-			i_aux = vetor[0][1];
-			j_aux = vetor[0][2];
-
-			vetor[0][0]=vetor[n][0];
-			vetor[0][1]=vetor[n][1];
-			vetor[0][2]=vetor[n][2];
-
-			vetor[n][0]=aux;
-			vetor[n][1]=i_aux;
-			vetor[n][2]=j_aux;
-		}
-		else contador=0;
-	}
+void population(){
+    for (i=0;i<10;i++){
+        ind[i] = (double) (rand() %(10 * 10)/10.0);
+    }
 }
 
+void maxfitness(){
+    maxfit = fit[0];
+    maxi = 0;
 
-
-
-void Cores_Iniciais(float Cor[][500][3])
-{
-	int i, j; 
-	int k; 
-
-	for(i=0;i<500;i++)
-	{
-		for(j=0;j<500;j++)
-		{
-			for(k=0;k<3;k++) Cor[i][j][k]=(float)((rand()%1000)/1000.0);
-
-			glBegin(GL_POINTS);
-				glColor3f(Cor[i][j][0],Cor[i][j][1],Cor[i][j][2]);
-				glVertex2i(i,j);
-			glEnd();
-		}
-	}
+    for (i=1; i<10; i++){
+        if (fit[i]>maxfit){
+            maxfit = fit[i];
+            maxi = i;
+        }
+    }
 }
 
+void evaluate(){
+   double x;
 
-void Avaliacao_Cores(float color[][500][3], int pontos[][3], float PerfectRed, float PerfectGreen, float PerfectBlue)
-{
-	int n;
-	for(n=0;n<melhorer_cores;n++) pontos[n][0]=0; 
-	int i, j;
-	float Pr, Pg, Pb;
-	int P;
-
-	for(i=0;i<500;i++)
-	{
-		for(j=0;j<500;j++)
-		{
-			if( Cor[i][j][0] <= PerfectRed )  Pr=(Cor[i][j][0]/PerfectRed);
-			else Pr=( (1-Cor[i][j][0])/(1-PerfectRed));
-
-			if( Cor[i][j][1] <= PerfectGreen )  Pr=(Cor[i][j][1]/PerfectGreen);
-			else Pg=( (1-Cor[i][j][1])/(1-PerfectGreen));
-
-			if( Cor[i][j][2] <= PerfectBlue )  Pr=(Cor[i][j][2]/PerfectBlue);
-			else Pb=( (1-Cor[i][j][2])/(1-PerfectBlue));
-
-			P = (int) ((Pr+Pg+Pb)*1000);
-
-			for(n=0; n<melhorer_cores ;n++)
-			{
-				if(P>pontos[n][0])
-				{
-					pontos[n][0]=P;
-					pontos[n][1]=i;
-					pontos[n][2]=j;
-					break;
-				}
-			}
-			
-			Ordenar_Vetor(pontos,melhorer_cores);
-		}
-	}
+  for (i=0; i<10; i++){
+        x=ind[i];
+        if (x>=0.0 && x<10.0)
+            fit[i] = x;
+        else if (x>=10.0 && x<20.0)
+            fit[i] = 20.0 - x;
+        else
+            fit[i] = 0.0;
+    }
 }
 
+void elite(){
+    maxfit = fit[0];
+    maxi = 0;
 
-void Crossover_Cores(float Cor[][500][3], int pontos[][3])
-{
-	int n, p, q, k;
-	for(n=0; n<melhorer_cores; n++) 
-	{
-		for(p=-Vizinho1 ;p<=Vizinho1 ;p++) 
-		{
-			for(q=-Vizinho1 ;q<=Vizinho1;q++)
-			{
-				if( ((pontos[n][1]+p)>=0) && ((pontos[n][1]+p)<500) && ((pontos[n][2]+q)>=0) && ((pontos[n][2]+q)<500) && ( pow(p,2) + pow(q,2) <= pow(Vizinho1 ,2) ) )
-				{
-					for(k=0;(k<3);k++)  
-						color[pontos[n][1]+p][pontos[n][2]+q][k]= ((3*(color[pontos[n][1]+p][pontos[n][2]+q][k])+color[pontos[n][1]][pontos[n][2]][k])/4) ;
-				}
-			}
-		} 
-	}
-	Vizinho1 =Vizinho1 +0.40;
+    for (i=1; i<10; i++){
+        if (fit[i]>maxfit){
+            maxfit = fit[i];
+            maxi = i;
+        }
+    }
+
+    for (i=0;i<10;i++){
+        int aux;
+        if (i==maxi)
+            continue;
+
+        ind[i] = (ind[i] + ind[maxi])/ 2.0;
+
+        aux=ind[i];
+        ind[i] = ind[i] + (double) (((rand() %10 - (10/2.0))/100.0) * 4);
+
+        if (ind[i] >10)
+            ind[i]=aux;
+    }
 }
 
+void predation(){
+    double minfit = fit[0];
+    int    mini = 0;
 
-void Mutacao_Cores(float cor[][500][3], float red, float green, float blue)
-{
-	int c, p, q, k;
-	for(c=0; c<Mutacoes;c++)
-	{
-		int i_randomico = rand()%500;
-		int j_randomico = rand()%500;
-
-		cor[i_randomico][j_randomico][0]=red;
-		cor[i_randomico][j_randomico][1]=green;
-		cor[i_randomico][j_randomico][2]=blue;
-
-		for(p=-Vizinho2; p<=Vizinho2; p++) 
-			{
-				for(q=-Vizinho2;q<=Vizinho2;q++)
-				{
-					if(((i_randomico+p)>=0) && ((i_randomico+p)<500) && ((j_randomico+q)>=0) && ((j_randomico+q)<500) && ( pow(p,2) + pow(q,2) <= pow(Vizinho2,2) ))
-					{
-						for(k=0;(k<3);k++)  
-							cor[i_randomico+p][j_randomico+q][k]= ((cor[i_randomico+p][j_randomico+q][k]+cor[i_randomico][j_randomico][k])/2) ;
-					}
-				}
-			} 
-	}
-
-	Vizinho2=Vizinho2+0.2;
-}
+    for (i=1;i<10;i++){
+        if (fit[i]<minfit){
+            minfit = fit[i];
+            mini = i;
+        }
+    }
+    ind[mini] = (double) (rand() %(10 * 10)/10.0);
